@@ -65,7 +65,7 @@ model = dict(
         clip_return_layer=0,
         clip_student_return_interval=1,
         #pretrained="pretrained_model/l16_ptk710_f8_res224.pth", # SNU server
-        pretrained="pretrained_model/l16_5m.pth", # SNU server
+        pretrained="/gallery_moma/sangwoo.moon/umt_filter/multi_modality/pretrained_model/l16_5m.pth", # SNU server
         # pretrained="/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth", # AI2 server
         # clip teacher
         clip_teacher="none",
@@ -135,7 +135,6 @@ device = "cuda"
 mode = "pt"
 
 # ========================= others ==========================
-output_dir = None  # output dir
 resume = False  # if True, load optimizer and scheduler states as well
 debug = False
 log_freq = 100
@@ -145,4 +144,9 @@ zero_shot = True
 evaluate = True
 save_latest = True
 auto_resume = True
-pretrained_path = ""  # path to pretrained model weights, for resume only?
+# pretrained_path = ""  # path to pretrained model weights, for resume only?
+# output_dir = None  # output dir
+pretrained_path = "/gallery_moma/sangwoo.moon/umt_filter/multi_modality/pretrained_model/l16_5m.pth" # SNU server
+# pretrained_path = "/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth" # AI2 server
+output_dir = "checkpoints"  # output dir
+

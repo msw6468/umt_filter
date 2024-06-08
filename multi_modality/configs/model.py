@@ -9,7 +9,8 @@ TextEncoders["bert"] = dict(
 TextEncoders["bert_large"] = dict(
     name="bert_large",
     pretrained="bert-large-uncased",
-    config="configs/config_bert_large.json",
+    # config="configs/config_bert_large.json",
+    config="multi_modality/configs/config_bert_large.json",
     d_model=1024,
     fusion_layer=19,
 )

@@ -226,7 +226,7 @@ class HowTo100M(BaseDataset):
         if self.args.frame_load == 'hdf5':
             try:
                 # Load from frame -----------------------------------------
-                binary_images = self.hdf5_file[video_id][text_id*8: (text_id+1)*8][self.frame_idxs]
+                binary_images = self.frames_h5[video_id][text_id*8: (text_id+1)*8][self.frame_idxs]
                 images = torch.zeros((self.max_frames, 224, 224, 3))
 
                 for i, binary_image in enumerate(binary_images):
@@ -361,18 +361,20 @@ def parse_args():
     parser.add_argument("--debug",      type=str, default='False')
     parser.add_argument("--frame_load", type=str, default='hdf5', help='[image, hdf5]')
     parser.add_argument("--max_frames", type=int, default=4, help='[4,  8]')
+    parser.add_argument("--final_check", type=str, default='False', help='[True, False]')
 
-    parser.add_argument("--config_file", type=str, default='exp/zero_shot/ret_msrvtt/b16.py')
-    parser.add_argument("--pretrained_path", type=str, default='pretrained_model/b16_5m.pth')
-    parser.add_argument("--output_dir", type=str, default='checkpoints')
+    parser.add_argument("--config_file", type=str, default='multi_modality/exp/zero_shot/ret_msrvtt/l16.py')
+    parser.add_argument("--pretrained_path", type=str, default='multi_modality/pretrained_model/l16_5m.pth')
+    parser.add_argument("--output_dir", type=str, default='multi_modality/checkpoints')
 
     return parser.parse_args()
 
 # %%
 def main(args):
     args.debug = True if args.debug == 'True' else False
+    args.final_check = True if args.final_check == 'True' else False
     args.root_path = os.path.join(LOAD_DIR[args.dir_name], args.data_version)
-    args.save_path = os.path.join(args.root_path, 'UMT_results') if not args.debug else os.path.join(args.root_path, 'UMT_results', 'debug')
+    args.save_path = os.path.join(args.root_path, 'UMT') if not args.debug else os.path.join(args.root_path, 'UMT', 'debug')
     if (args.dir_name != 'ai2') and (args.data_version not in ['subset', 'valid']):
         args.meta_sub_part = (args.part-1) // 4
     pprint(args)
@@ -444,7 +446,7 @@ def main(args):
                             tokenizer               = tokenizer,
                             processor               = transform,
                             video_dict              = total_video_dict,
-                            hdf5_file               = frames_h5,)
+                            frames_h5               = frames_h5,)
 
         dataloader = DataLoader(
             dataset,

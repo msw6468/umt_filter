@@ -16,7 +16,7 @@ def setup_config(args=None):
     """
     config = Config.get_config(args=args)
     if config.debug:
-        config.wandb.enable = False
+       config.wandb.enable = False
     return config
 
 
