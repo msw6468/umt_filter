@@ -1,3 +1,13 @@
+# Custom README
+
+run code to install clip l14
+```
+single_modality/models/extract_clip/clip_install.py
+```
+
+
+
+
 # Unmasked Teacher
 
 This repo is the official implementation of ["Unmasked Teacher: Towards Training-Efficient Video Foundation Models"](https://arxiv.org/abs/2303.16058).
@@ -33,7 +43,7 @@ Video Foundation Models (VFMs) have received limited exploration due to high com
 
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-classification-on-kinetics-400)](https://paperswithcode.com/sota/action-classification-on-kinetics-400?p=unmasked-teacher-towards-training-efficient)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-classification-on-kinetics-600)](https://paperswithcode.com/sota/action-classification-on-kinetics-600?p=unmasked-teacher-towards-training-efficient)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-classification-on-kinetics-700)](https://paperswithcode.com/sota/action-classification-on-kinetics-700?p=unmasked-teacher-towards-training-efficient)	
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-classification-on-kinetics-700)](https://paperswithcode.com/sota/action-classification-on-kinetics-700?p=unmasked-teacher-towards-training-efficient)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-classification-on-moments-in-time)](https://paperswithcode.com/sota/action-classification-on-moments-in-time?p=unmasked-teacher-towards-training-efficient)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/action-recognition-on-ava-v2-2)](https://paperswithcode.com/sota/action-recognition-on-ava-v2-2?p=unmasked-teacher-towards-training-efficient)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/unmasked-teacher-towards-training-efficient/video-retrieval-on-activitynet)](https://paperswithcode.com/sota/video-retrieval-on-activitynet?p=unmasked-teacher-towards-training-efficient)
@@ -59,7 +69,7 @@ If you find this repository useful, please use the following BibTeX entry for ci
 
 ```latex
 @misc{li2023unmasked,
-      title={Unmasked Teacher: Towards Training-Efficient Video Foundation Models}, 
+      title={Unmasked Teacher: Towards Training-Efficient Video Foundation Models},
       author={Kunchang Li and Yali Wang and Yizhuo Li and Yi Wang and Yinan He and Limin Wang and Yu Qiao},
       year={2023},
       eprint={2303.16058},

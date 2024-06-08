@@ -64,7 +64,7 @@ model = dict(
         clip_output_dim=768,
         clip_return_layer=0,
         clip_student_return_interval=1,
-        # pretrained="pretrained_model/l16_ptk710_f8_res224.pth", # SNU server
+        #pretrained="pretrained_model/l16_ptk710_f8_res224.pth", # SNU server
         pretrained="pretrained_model/l16_5m.pth", # SNU server
         # pretrained="/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth", # AI2 server
         # clip teacher

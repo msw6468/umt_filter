@@ -28,6 +28,6 @@ srun -p ${PARTITION} \
     --rdzv_backend=c10d \
     tasks/retrieval.py \
     $(dirname $0)/l16.py \
-    pretrained_path pretrained_model/b16_5m.pth \ # SNU server
-    #pretrained_path /net/nfs3.prior/dongjook/pretrained_models/b16_5m.pth \ # AI2 server
+    pretrained_path pretrained_model/l16_5m.pth \ # SNU server
+    #pretrained_path /net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth \ # AI2 server
     output_dir ${OUTPUT_DIR}

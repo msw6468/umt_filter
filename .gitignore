@@ -1,4 +1,5 @@
 checkpoints
+pretrained_model
 *.mp4
 
 # Byte-compiled / optimized / DLL files

@@ -8,7 +8,7 @@ from .backbones.vit import build_vit, build_clip
 from .backbones.bert.builder import build_bert
 from .criterions import MLMLoss, VTC_VTM_Loss, UTA_Loss
 from .mask import (
-    TubeMaskingGenerator, 
+    TubeMaskingGenerator,
     RandomMaskingGenerator
 )
 
@@ -43,7 +43,7 @@ class UMT(nn.Module):
         self.loss_weight = config.criterion.loss_weight
         self.criterion_uta = UTA_Loss(
             config.criterion.uta_norm_type,
-            config.criterion.uta_loss_type, 
+            config.criterion.uta_loss_type,
         )
         self.criterion_vtc_vtm = VTC_VTM_Loss(config.criterion.vtm_hard_neg)
         self.criterion_mlm = MLMLoss(config.criterion.mlm_masking_prob, tokenizer)
@@ -129,14 +129,14 @@ class UMT(nn.Module):
         mask_type = self.image_mask_type if T == 1 else self.video_mask_type
         window_size = self.image_window_size if T == 1 else self.video_window_size
         mask_ratio = self.image_mask_ratio if T == 1 else self.video_mask_ratio
-        
+
         if self.clip_teacher is None or self.loss_weight.uta == 0:
             return None, None
 
         if H != self.clip_img_size:
             image = torch.nn.functional.interpolate(
-                image.reshape(B, C*T, H, W), 
-                size=(self.clip_img_size, self.clip_img_size), 
+                image.reshape(B, C*T, H, W),
+                size=(self.clip_img_size, self.clip_img_size),
                 mode='bicubic', align_corners=False
             )
             image = image.view(B, C, T, self.clip_img_size, self.clip_img_size)
@@ -160,12 +160,12 @@ class UMT(nn.Module):
                 mask = mask.view(B, -1).to(torch.bool)
             else:
                 raise NotImplementedError
-            
+
             # mask clip output
             K, _, _, C = clip_output.shape
             mask_clip = mask.unsqueeze(0).repeat(K, 1, 1)
             clip_output = clip_output[~mask_clip].reshape(K, B, -1, C)
-        
+
         return mask, clip_output
 
     def encode_vision(self, image, test=False):
@@ -256,7 +256,7 @@ class UMT(nn.Module):
         self.image_mask_type = self.config.model.vision_encoder.image_mask_type
         self.image_window_size = (1, img_size // patch_size, img_size // patch_size)
         self.image_mask_ratio = self.config.model.vision_encoder.image_mask_ratio
-        
+
         return vision_encoder
 
     def build_text_encoder(self):
