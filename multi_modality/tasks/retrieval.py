@@ -1,7 +1,8 @@
 import copy
 import datetime
 import logging
-import os
+import os, sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import time
 from os.path import join
 

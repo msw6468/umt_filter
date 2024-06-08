@@ -10,11 +10,11 @@ from utils.logger import setup_logger
 logger = logging.getLogger(__name__)
 
 
-def setup_config():
+def setup_config(args=None):
     """Conbine yaml config and command line config with OmegaConf.
     Also converts types, e.g., `'None'` (str) --> `None` (None)
     """
-    config = Config.get_config()
+    config = Config.get_config(args=args)
     if config.debug:
         config.wandb.enable = False
     return config
@@ -42,19 +42,32 @@ def setup_output_dir(output_dir, excludes=["code"]):
         logger.warn(f"remaining dirs or files: {remaining}")
 
 
-def setup_main():
+def setup_main(args=None):
     """
     Setup config, logger, output_dir, etc.
     Shared for pretrain and all downstream tasks.
     """
-    config = setup_config()
-    if hasattr(config, "evaluate") and config.evaluate:
-        config = setup_evaluate_config(config)
-    init_distributed_mode(config)
+    if args == None:
+        config = setup_config()
+        if hasattr(config, "evaluate") and config.evaluate:
+            config = setup_evaluate_config(config)
+        init_distributed_mode(config)
 
-    if is_main_process():
-        setup_output_dir(config.output_dir, excludes=["code"])
-        setup_logger(output=config.output_dir, color=True, name="umt")
-        logger.info(f"config: {Config.pretty_text(config)}")
-        Config.dump(config, os.path.join(config.output_dir, "config.json"))
+        if is_main_process():
+            setup_output_dir(config.output_dir, excludes=["code"])
+            setup_logger(output=config.output_dir, color=True, name="umt")
+            logger.info(f"config: {Config.pretty_text(config)}")
+            Config.dump(config, os.path.join(config.output_dir, "config.json"))
+    else:
+        config = setup_config(args)
+        if hasattr(config, "evaluate") and config.evaluate:
+            config = setup_evaluate_config(config)
+        init_distributed_mode(config)
+
+        if is_main_process():
+            setup_output_dir(config.output_dir, excludes=["code"])
+            setup_logger(output=config.output_dir, color=True, name="umt")
+            logger.info(f"config: {Config.pretty_text(config)}")
+            Config.dump(config, os.path.join(config.output_dir, "config.json"))
+
     return config

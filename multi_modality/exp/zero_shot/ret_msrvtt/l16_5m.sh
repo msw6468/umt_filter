@@ -9,6 +9,7 @@ echo "PYTHONPATH: ${PYTHONPATH}"
 
 JOB_NAME='b16_5m'
 OUTPUT_DIR="$(dirname $0)/$JOB_NAME"
+#OUTPUT_DIR="/net/nfs3.prior/dongjook/umt_checkpoint/$JOB_NAME" # AI2 server
 LOG_DIR="$(dirname $0)/logs/${JOB_NAME}"
 PARTITION='video'
 NNODE=1
@@ -27,5 +28,6 @@ srun -p ${PARTITION} \
     --rdzv_backend=c10d \
     tasks/retrieval.py \
     $(dirname $0)/l16.py \
-    pretrained_path your_model_path/b16_5m.pth \
+    pretrained_path pretrained_model/b16_5m.pth \ # SNU server
+    #pretrained_path /net/nfs3.prior/dongjook/pretrained_models/b16_5m.pth \ # AI2 server
     output_dir ${OUTPUT_DIR}

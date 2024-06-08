@@ -5,14 +5,14 @@ from configs.model import *
 del available_corpus
 
 train_file = [
-    f"{anno_root_downstream}/msrvtt_ret_train9k.json",
-    "your_msrvtt_path",
+    f"/gallery_moma/sangwoo.moon/online_filtering_dev2/data/msrvtt_ret_train9k.json",
+    "/gallery_moma/sangwoo.moon/online_filtering_dev2/data/msrvtt/data/MSRVTT/videos/all",
     "video",
 ]
 test_file = dict(
     test=[
-        f"{anno_root_downstream}/msrvtt_ret_test1k.json",
-        "your_msrvtt_path",
+        f"/gallery_moma/sangwoo.moon/online_filtering_dev2/data/msrvtt_ret_test1k.json",
+        "/gallery_moma/sangwoo.moon/online_filtering_dev2/data/msrvtt/data/MSRVTT/videos/all",
         "video",
     ],
 )
@@ -49,13 +49,13 @@ model = dict(
     vision_encoder=dict(
         # backbone
         name="vit_l14",
-        img_size=224, 
-        patch_size=16, 
+        img_size=224,
+        patch_size=16,
         d_model=1024,
-        encoder_embed_dim=1024, 
+        encoder_embed_dim=1024,
         encoder_depth=24,
-        encoder_num_heads=16, 
-        drop_path_rate=0.3, 
+        encoder_num_heads=16,
+        drop_path_rate=0.3,
         num_frames="${num_frames}",
         tubelet_size=1,
         use_checkpoint=True,
@@ -64,7 +64,9 @@ model = dict(
         clip_output_dim=768,
         clip_return_layer=0,
         clip_student_return_interval=1,
-        pretrained="your_model_path/l16_ptk710_f8_res224.pth",
+        # pretrained="pretrained_model/l16_ptk710_f8_res224.pth", # SNU server
+        pretrained="pretrained_model/l16_5m.pth", # SNU server
+        # pretrained="/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth", # AI2 server
         # clip teacher
         clip_teacher="none",
         clip_img_size=196,
@@ -87,9 +89,9 @@ model = dict(
 
 criterion = dict(
     loss_weight=dict(
-        vtc=1.0, 
-        mlm=0.0, 
-        vtm=1.0, 
+        vtc=1.0,
+        mlm=0.0,
+        vtm=1.0,
         uta=0.0,
     ),  # 0: disabled.
     vtm_hard_neg=True,

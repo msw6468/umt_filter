@@ -6,7 +6,8 @@ import torch
 from torch import nn
 
 
-MODEL_PATH = 'your_model_path/clip_visual_encoder'
+MODEL_PATH = 'pretrained_model/clip_visual_encoder' # SNU server
+# MODEL_PATH = '/net/nfs3.prior/dongjook/pretrained_models/clip_visual_encoder' # AI2 server
 _MODELS = {
     # extracted from OpenAI, see extract_clip
     "ViT-B/16": os.path.join(MODEL_PATH, "vit_b16.pth"),
@@ -64,7 +65,7 @@ class ResidualAttentionBlock(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(
-            self, width, layers, heads, return_attn=False, 
+            self, width, layers, heads, return_attn=False,
             clip_return_layer=1, clip_return_interval=1,
         ):
         super().__init__()
@@ -98,7 +99,7 @@ class Transformer(nn.Module):
 
 class VisionTransformer(nn.Module):
     def __init__(
-        self, input_resolution, patch_size, width, layers, heads, output_dim, 
+        self, input_resolution, patch_size, width, layers, heads, output_dim,
         clip_norm_type='l2', kernel_size=1,
         return_attn=False, clip_return_layer=1, clip_return_interval=1,
     ):
@@ -112,9 +113,9 @@ class VisionTransformer(nn.Module):
 
         self.output_dim = output_dim
         self.conv1 = nn.Conv3d(
-            3, width, 
-            (kernel_size, patch_size, patch_size), 
-            (kernel_size, patch_size, patch_size), 
+            3, width,
+            (kernel_size, patch_size, patch_size),
+            (kernel_size, patch_size, patch_size),
             (0, 0, 0), bias=False
         )
 
@@ -122,9 +123,9 @@ class VisionTransformer(nn.Module):
         self.class_embedding = nn.Parameter(scale * torch.randn(width))
         self.positional_embedding = nn.Parameter(scale * torch.randn((input_resolution // patch_size) ** 2 + 1, width))
         self.ln_pre = LayerNorm(width)
-        
+
         self.transformer = Transformer(
-            width, layers, heads, return_attn=return_attn, 
+            width, layers, heads, return_attn=return_attn,
             clip_return_layer=clip_return_layer,
             clip_return_interval=clip_return_interval,
         )
@@ -158,7 +159,7 @@ class VisionTransformer(nn.Module):
         x = self.ln_post(x[:, 1:, :, :])  # [HW, NT, C]
         x = x.view(K, HW, N, T, C).permute(0, 2, 3, 1, 4).reshape(K, N, T * HW, C)  # [K, N, THW, C]
         x = x @ self.proj
-        
+
         if self.clip_norm_type == 'l2':
             x = x / x.norm(dim=-1, keepdim=True)
         elif self.clip_norm_type == 'none':
@@ -211,22 +212,22 @@ def load_state_dict(model, state_dict, input_resolution=224, patch_size=16, cent
         pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(0, 2)
         new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=0)
         state_dict['positional_embedding'] = new_pos_embed
-    
+
     model.load_state_dict(state_dict, strict=True)
 
 
 def clip_b16(
-    pretrained=True, 
+    pretrained=True,
     clip_norm_type='l2', input_resolution=224, kernel_size=1,
     return_attn=False, center=True, clip_return_layer=1,
     clip_return_interval=1
 ):
     model = VisionTransformer(
-        input_resolution=input_resolution, patch_size=16, 
+        input_resolution=input_resolution, patch_size=16,
         width=768, layers=12, heads=12, output_dim=512,
         clip_norm_type=clip_norm_type,
         kernel_size=kernel_size, return_attn=return_attn,
-        clip_return_layer=clip_return_layer, 
+        clip_return_layer=clip_return_layer,
         clip_return_interval=clip_return_interval
     )
     if pretrained:
@@ -237,7 +238,7 @@ def clip_b16(
 
 
 def clip_l14(
-    pretrained=True, 
+    pretrained=True,
     clip_norm_type='l2', input_resolution=224, kernel_size=1,
     return_attn=False, center=True, clip_return_layer=1,
     clip_return_interval=1
@@ -258,13 +259,13 @@ def clip_l14(
 
 
 def clip_l14_336(
-    pretrained=True, 
+    pretrained=True,
     clip_norm_type='l2', input_resolution=336, kernel_size=1,
     return_attn=False, center=True, clip_return_layer=1,
     clip_return_interval=1
 ):
     model = VisionTransformer(
-        input_resolution=input_resolution, patch_size=14, 
+        input_resolution=input_resolution, patch_size=14,
         width=1024, layers=24, heads=16, output_dim=768,
         clip_norm_type=clip_norm_type,
         kernel_size=kernel_size, return_attn=return_attn,

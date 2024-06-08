@@ -54,13 +54,13 @@ model = dict(
     vision_encoder=dict(
         # backbone
         name="vit_l14",
-        img_size=224, 
-        patch_size=16, 
+        img_size=224,
+        patch_size=16,
         d_model=1024,
-        encoder_embed_dim=1024, 
+        encoder_embed_dim=1024,
         encoder_depth=24,
-        encoder_num_heads=16, 
-        drop_path_rate=0.3, 
+        encoder_num_heads=16,
+        drop_path_rate=0.3,
         num_frames="${num_frames}",
         tubelet_size=1,
         use_checkpoint=True,
@@ -69,7 +69,10 @@ model = dict(
         clip_output_dim=768,
         clip_return_layer=0,
         clip_student_return_interval=1,
-        pretrained="your_model_path/l16_ptk710_f8_res224.pth",
+        # XXX path for our server
+        pretrained="pretrained_model/l16_ptk710_f8_res224.pth",
+        # XXX path for ai2 server
+        # pretrained="pretrained_model/l16_ptk710_f8_res224.pth",
         # clip teacher
         clip_teacher="none",
         clip_img_size=196,
@@ -92,9 +95,9 @@ model = dict(
 
 criterion = dict(
     loss_weight=dict(
-        vtc=1.0, 
-        mlm=0.0, 
-        vtm=1.0, 
+        vtc=1.0,
+        mlm=0.0,
+        vtm=1.0,
         uta=0.0,
     ),  # 0: disabled.
     vtm_hard_neg=True,

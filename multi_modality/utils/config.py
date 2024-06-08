@@ -67,7 +67,7 @@ class Config(object):
         json.dump(cfg, open(savepath, "w"), indent=2)
 
     @classmethod
-    def get_config(cls, default_config: dict = None):
+    def get_config(cls, default_config: dict = None, args=None):
         """get a `Config` instance.
 
         Args:
@@ -80,26 +80,32 @@ class Config(object):
         if cfg is not None:
             return cfg
 
-        # define arg parser.
-        parser = argparse.ArgumentParser()
-        # parser.add_argument("--cfg", help="load configs from yaml file", default="", type=str)
-        parser.add_argument(
-            "config_file", help="the configuration file to load. support: .yaml, .json, .py"
-        )
-        parser.add_argument(
-            "opts",
-            default=None,
-            nargs="*",
-            help="overrided configs. List. Format: 'key1 name1 key2 name2'",
-        )
-        args = parser.parse_args()
-
-        cfg = EasyDict(BASE_CONFIG)
-        if osp.isfile(args.config_file):
-            cfg_from_file = cls.from_file(args.config_file)
-            cfg = merge_a_into_b(cfg_from_file, cfg)
-        cfg = cls.merge_list(cfg, args.opts)
-        cfg = eval_dict_leaf(cfg)
+        if args == None:
+            # define arg parser.
+            parser = argparse.ArgumentParser()
+            parser.add_argument(
+                "config_file", help="the configuration file to load. support: .yaml, .json, .py"
+            )
+            parser.add_argument(
+                "opts",
+                default=None,
+                nargs="*",
+                help="overrided configs. List. Format: 'key1 name1 key2 name2'",
+            )
+            args = parser.parse_args()
+            cfg = EasyDict(BASE_CONFIG)
+            if osp.isfile(args.config_file):
+                cfg_from_file = cls.from_file(args.config_file)
+                cfg = merge_a_into_b(cfg_from_file, cfg)
+            cfg = cls.merge_list(cfg, args.opts)
+            cfg = eval_dict_leaf(cfg)
+        else:
+            args = args
+            cfg = EasyDict(BASE_CONFIG)
+            if osp.isfile(args.config_file):
+                cfg_from_file = cls.from_file(args.config_file)
+                cfg = merge_a_into_b(cfg_from_file, cfg)
+            cfg = eval_dict_leaf(cfg)
 
         # update some keys to make them show at the last
         for k in BASE_CONFIG:
