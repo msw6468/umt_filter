@@ -52,7 +52,6 @@ def get_UMT_model(args):
         - tokenizer
     """
     config                              = setup_main(args)
-    num_steps_per_epoch                 = 0
     config.scheduler.num_training_steps = 0
     config.scheduler.num_warmup_steps   = 0
     model_cls                           = eval(config.model.get('model_cls', 'UMT'))
@@ -90,6 +89,7 @@ def get_total_video_dict(args):
     elif args.dir_name == 'align':
         with open(os.path.join(LOAD_DIR[args.dir_name], 'htm_align_reformatted.json'), 'r') as f:
             total_video_dict = json.load(f)
+
     else: # tate, moma, getty, orsay, millet, ...
         if args.data_version == '8frames_per_clip':
             with open(os.path.join(LOAD_DIR['tate'], 'sentencified', f'sentencified_htm_remaining_part{args.meta_part}.json'), 'r') as f:
@@ -128,7 +128,11 @@ def get_preprocessed_frames_hdf5(args):
         if args.dir_name == 'ai2':
             hdf5_file = h5py.File(os.path.join(args.root_path, f'preprocessed_frames_part{args.meta_part}.h5py'),'r')
         else: # our server
-            if args.data_version == '8frames_per_clip':
+            if args.data_version == 'subset':
+                hdf5_file = h5py.File(f'/gallery_moma/sangwoo.moon/data/video/howto100m_LB/subset/preprocessed_frames_part{args.meta_part}.h5py', 'r')
+            elif args.data_version == 'valid':
+                hdf5_file = h5py.File(f'/gallery_millet/chris.kim/data/howto100m/valid/preprocessed_frames_part{args.meta_part}.h5py', 'r')
+            elif args.data_version == '8frames_per_clip':
                 hdf5_file = h5py.File(os.path.join(args.root_path, f'preprocessed_frames_metapart{args.meta_part}_part{args.meta_sub_part}.h5py'),'r')
             else:
                 hdf5_file = h5py.File(os.path.join(args.root_path, f'preprocessed_frames_metapart{args.meta_part}.h5py'),'r')
@@ -176,7 +180,7 @@ class BaseDataset(Dataset, ABC):
 # ================
 class HowTo100M(BaseDataset):
     name = 'howto100m'
-    def __init__(self, args, tokenizer, processor, valid_current_video_ids, hdf5_file=None, video_dict=None):
+    def __init__(self, args, tokenizer, processor, valid_current_video_ids, frames_h5=None, video_dict=None):
         super(HowTo100M, self).__init__()
 
         self.args   = args
@@ -187,7 +191,7 @@ class HowTo100M(BaseDataset):
         self.frame_idxs = [0,1,2,3,4,5,6,7] if self.max_frames==8 else [0,2,4,6] # UMT case
         self.max_words  = 77
 
-        self.hdf5_file = hdf5_file
+        self.frames_h5 = frames_h5
 
         # Set preprocess
         self.tokenizer = tokenizer
@@ -402,7 +406,7 @@ def main(args):
     h5py_f = get_h5py_files(args)
 
     print(f'Load preprocessed_frames')
-    hdf5_file = get_preprocessed_frames_hdf5(args)
+    frames_h5 = get_preprocessed_frames_hdf5(args)
 
     for i in range(0, len(total_video_ids), args.num_segment):
         # Check current video ids and check its validity
@@ -414,14 +418,20 @@ def main(args):
         print(f'[Current_dataset] Validity check on video_id[{start}:{end}]')
         valid_current_video_ids = []
         for current_video_id in tqdm(current_video_ids):
-            current_video_id_process_flag = os.path.exists(os.path.join(args.root_path, 'preprocessed_flag', current_video_id))
-            current_video_id_done_flag    = os.path.exists(os.path.join(args.root_path, 'final_flag',        current_video_id))
-            if not args.debug:
-                if current_video_id_process_flag & (not current_video_id_done_flag):
-                    valid_current_video_ids.append(current_video_id)
+
+            # check done_flag
+            if args.final_check: # based on files
+                current_video_id_done_flag = (current_video_id in h5py_f['clip_sim_h5'].keys())
+            else:                # based on h5 file keys
+                current_video_id_done_flag = os.path.exists(os.path.join(args.save_path, 'final_flag', current_video_id))
+
+            # add video_id if not done
+            if args.debug:
+                valid_current_video_ids.append(current_video_id)
             else:
-                if current_video_id_process_flag:
+                if (not current_video_id_done_flag):
                     valid_current_video_ids.append(current_video_id)
+
         print(f'[Current_dataset] Validity check result: {len(valid_current_video_ids)}/{len(current_video_ids)}')
 
         if len(valid_current_video_ids) == 0:
@@ -434,7 +444,7 @@ def main(args):
                             tokenizer               = tokenizer,
                             processor               = transform,
                             video_dict              = total_video_dict,
-                            hdf5_file               = hdf5_file,)
+                            hdf5_file               = frames_h5,)
 
         dataloader = DataLoader(
             dataset,
