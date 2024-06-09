@@ -563,5 +563,3 @@ if __name__ == "__main__":
     args = parse_args()
     main(args)
     print(colorful.bold_pink("Thank you and Good Job Computer.").styled_string)
-
-# %%
