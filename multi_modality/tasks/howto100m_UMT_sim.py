@@ -1,7 +1,6 @@
 # Ignore warning
 # import warnings
 # warnings.filterwarnings(action='ignore')
-
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import json
@@ -15,7 +14,6 @@ import pandas as pd
 
 import torch
 import torch.multiprocessing
-import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms import transforms, InterpolationMode
@@ -96,7 +94,6 @@ def get_total_video_dict(args):
     elif args.dir_name == 'align':
         with open(os.path.join(LOAD_DIR[args.dir_name], 'htm_align_reformatted.json'), 'r') as f:
             total_video_dict = json.load(f)
-
     else: # tate, moma, getty, orsay, millet, ...
         if args.data_version == '8frames_per_clip':
             with open(os.path.join(LOAD_DIR['tate'], 'sentencified', f'sentencified_htm_remaining_part{args.meta_part}.json'), 'r') as f:
