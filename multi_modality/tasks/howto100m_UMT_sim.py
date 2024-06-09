@@ -45,7 +45,7 @@ LOAD_DIR = {
 # utils ----------------------------------------------------------
 def get_UMT_model(args):
     """ Get UMT models
-    Return: 
+    Return:
         - config
         - model
         - transform
@@ -249,7 +249,7 @@ class HowTo100M(BaseDataset):
             except Exception as e:
                 print(f'video_id {video_id}, text_id {text_id} sample is corrupted, {e}')
                 return torch.zeros((self.max_frames, 3, 224, 224), dtype=torch.float), False # bad clip-captions
-        else: 
+        else:
             NotImplementedError
 
         return images, True
@@ -293,7 +293,7 @@ def get_UMT_scores(args, config, model,
     # config.evaluation.eval_offload: True
     text_encoder = model.get_text_encoder()
     encoder_output = image_feats # (#frm*Li, d)
-    encoder_att    = torch.ones(encoder_output.size()[:-1], 
+    encoder_att    = torch.ones(encoder_output.size()[:-1],
                             dtype=torch.long).to(device, non_blocking=True)
     itm_embeds     = []
     output = text_encoder(
@@ -356,7 +356,7 @@ def parse_args():
     parser.add_argument("--part",      type=int, default=1,      help="for mulit_running. which part?(1, ..., total)")
     parser.add_argument("--total",     type=int, default=1,      help="for multi_running. how many parts?")
 
-    # For dataloader 
+    # For dataloader
     parser.add_argument("--device",      type=str, default='cuda')
     parser.add_argument("--batch_size",  type=int, default=200, help="[100 for 24GB, 200 for 48GB]")
     parser.add_argument("--num_workers", type=int, default=4)
@@ -507,7 +507,7 @@ def main(args):
                     # -------------------------------------------------------------
 
                     encoder_output = image_feats # (#frm*Li, d)
-                    encoder_att    = torch.ones(encoder_output.size()[:-1], 
+                    encoder_att    = torch.ones(encoder_output.size()[:-1],
                                             dtype=torch.long).to(args.device, non_blocking=True)
 
                     output = text_encoder(
@@ -544,10 +544,10 @@ def main(args):
                     step += 1
 
                 for v_id in image_feats_dict.keys():
-                    text_ids_dict[v_id]    = np.vstack(text_ids_dict[v_id]) 
-                    text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id]) 
-                    text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id]) 
-                    image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id]) 
+                    text_ids_dict[v_id]    = np.vstack(text_ids_dict[v_id])
+                    text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id])
+                    text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id])
+                    image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id])
                     clip_sim_dict[v_id]    = np.vstack(clip_sim_dict[v_id])
 
                 save_embeds_sims_chunk_UMT_single(args, config, model,

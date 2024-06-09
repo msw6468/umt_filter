@@ -60,6 +60,15 @@ def setup_main(args=None):
             Config.dump(config, os.path.join(config.output_dir, "config.json"))
     else:
         config = setup_config(args)
+
+        # additional update for ours
+        config.device = args.device
+        config.dir_name = args.dir_name
+        if config.dir_name == 'ai2':
+            config.pretrained = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
+            config.model.pretrained = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
+
+
         if hasattr(config, "evaluate") and config.evaluate:
             config = setup_evaluate_config(config)
         init_distributed_mode(config)

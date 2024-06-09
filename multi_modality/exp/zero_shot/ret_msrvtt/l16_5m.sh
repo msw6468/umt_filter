@@ -7,7 +7,7 @@ export PYTHONPATH=${PYTHONPATH}:${which_python}
 export PYTHONPATH=${PYTHONPATH}:.
 echo "PYTHONPATH: ${PYTHONPATH}"
 
-JOB_NAME='b16_5m'
+JOB_NAME='l16_5m'
 OUTPUT_DIR="$(dirname $0)/$JOB_NAME"
 #OUTPUT_DIR="/net/nfs3.prior/dongjook/umt_checkpoint/$JOB_NAME" # AI2 server
 LOG_DIR="$(dirname $0)/logs/${JOB_NAME}"
@@ -29,5 +29,5 @@ srun -p ${PARTITION} \
     tasks/retrieval.py \
     $(dirname $0)/l16.py \
     pretrained_path pretrained_model/l16_5m.pth \ # SNU server
-    #pretrained_path /net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth \ # AI2 server
+    # pretrained_path /net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth \ # AI2 server
     output_dir ${OUTPUT_DIR}
