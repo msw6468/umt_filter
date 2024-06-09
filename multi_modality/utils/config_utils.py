@@ -65,8 +65,8 @@ def setup_main(args=None):
         config.device = args.device
         config.dir_name = args.dir_name
         if config.dir_name == 'ai2':
-            config.pretrained = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
-            config.model.pretrained = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
+            config.pretrained_path = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
+            config.model.vision_encoder.pretrained = '/net/nfs3.prior/dongjook/pretrained_models/l16_5m.pth'
 
 
         if hasattr(config, "evaluate") and config.evaluate:
