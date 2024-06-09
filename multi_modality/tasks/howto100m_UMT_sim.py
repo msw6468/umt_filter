@@ -1,6 +1,6 @@
 # Ignore warning
-import warnings
-warnings.filterwarnings(action='ignore')
+# import warnings
+# warnings.filterwarnings(action='ignore')
 
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
@@ -62,6 +62,13 @@ def get_UMT_model(args):
         config, model_cls=model_cls, has_decoder=False,
         pretrain=False, find_unused_parameters=False,
     )
+    # with torch.cuda.amp.autocast(enabled=config.fp16):
+    #     model.eval()
+    #     image = torch.ones(32,4,3,224,224).to(args.device)
+    #     use_image=False
+    #     keep_temporal=True
+    #     model.encode_vision(image, NOne, use_image, keep_temporal)
+    #     from IPython import embed; embed(colors='neutral')  # XXX DEBUG  # yapf: disable
 
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
@@ -335,8 +342,8 @@ def save_embeds_sims_chunk_UMT_single(args, config, model,
             flag_save_path = os.path.join(args.flag_dir, f'{video_id}')
             Path(flag_save_path).touch()
     else:
+        from IPython import embed; embed(colors='neutral')  # XXX DEBUG  # yapf: disable
         pass
-        # from IPython import embed; embed(colors='neutral')  # XXX DEBUG  # yapf: disable
 
     return
 
@@ -356,7 +363,7 @@ def parse_args():
 
     # others
     parser.add_argument("--data_version", type=str, required=True, help="[subset, 1200k, 730k, 370k, valid]")
-    parser.add_argument("--num_segment",  type=int, default=200)
+    parser.add_argument("--num_segment",  type=int, default=50)
 
     parser.add_argument("--debug",      type=str, default='False')
     parser.add_argument("--frame_load", type=str, default='hdf5', help='[image, hdf5]')
@@ -465,90 +472,91 @@ def main(args):
         clip_sim_dict = {}
         step = 0
         with torch.no_grad():
-            pbar = tqdm(dataloader)
-            for batch in pbar:
-                pbar.set_description(f"[{args.part:2d}/{args.total:2d}] [{start}:{end}({len(valid_current_video_ids)}) in {len(total_video_ids)} ({100*end/len(total_video_ids):.2f}%)] [#clips: {len(dataset)}]")
-                video_ids, text_ids, frames, raw_texts, valid_flag = batch
-                if np.sum(np.array(valid_flag)) == 0:
-                    continue
-                video_ids = np.array(video_ids)[np.array(valid_flag)]
+            with torch.cuda.amp.autocast(enabled=config.fp16):
+                pbar = tqdm(dataloader)
+                for batch in pbar:
+                    pbar.set_description(f"[{args.part:2d}/{args.total:2d}] [{start}:{end}({len(valid_current_video_ids)}) in {len(total_video_ids)} ({100*end/len(total_video_ids):.2f}%)] [#clips: {len(dataset)}]")
+                    video_ids, text_ids, frames, raw_texts, valid_flag = batch
+                    if np.sum(np.array(valid_flag)) == 0:
+                        continue
+                    video_ids = np.array(video_ids)[np.array(valid_flag)]
 
-                # retrieval_utils.py extract_text_feats() L18
-                raw_texts  = list(np.array(raw_texts)[np.array(valid_flag)])
-                text_ids   = np.array(text_ids)[np.array(valid_flag)]
-                texts      = dataset.tokenizer(raw_texts,
-                                            max_length=dataset.max_words,
-                                            padding='max_length',
-                                            truncation=True,
-                                            return_tensors='pt').to(args.device)
-                text_feats = model.encode_text(texts)[0]
-                text_atts  = texts['attention_mask']
-                # -------------------------------------------------------------
+                    # retrieval_utils.py extract_text_feats() L18
+                    raw_texts  = list(np.array(raw_texts)[np.array(valid_flag)])
+                    text_ids   = np.array(text_ids)[np.array(valid_flag)]
+                    texts      = dataset.tokenizer(raw_texts,
+                                                max_length=dataset.max_words,
+                                                padding='max_length',
+                                                truncation=True,
+                                                return_tensors='pt').to(args.device)
+                    text_feats = model.encode_text(texts)[0]
+                    text_atts  = texts['attention_mask']
+                    # -------------------------------------------------------------
 
-                # retrieval_utils.py extract_vision_feats() L43
-                frames         = frames[valid_flag].to(args.device)
-                image_feats, _ = model.encode_vision(frames, test=True)
+                    # retrieval_utils.py extract_vision_feats() L43
+                    frames         = frames[valid_flag].to(args.device)
+                    image_feats, _ = model.encode_vision(frames, test=True)
 
-                if config.evaluation.eval_frame_ensemble == "concat":  # default
-                    if len(image_feats.shape) == 4:
-                        image_feats = rearrange(image_feats, "b t l c -> b (t l) c").contiguous()
-                    image_feats = image_feats  # (bsz, 1, #frm*L, d)
-                else:
-                    assert config.video_input.num_frames == 1, "only support single-frame"
-                    assert config.evaluation.eval_frame_ensemble in ["mean", "max", "lse"]
-                # -------------------------------------------------------------
-
-                encoder_output = image_feats # (#frm*Li, d)
-                encoder_att    = torch.ones(encoder_output.size()[:-1], 
-                                        dtype=torch.long).to(args.device, non_blocking=True)
-
-                output = text_encoder(
-                    encoder_embeds=text_feats,
-                    attention_mask=text_atts,
-                    encoder_hidden_states=encoder_output,
-                    encoder_attention_mask=encoder_att,
-                    return_dict=True,
-                    mode="fusion",
-                )
-
-                itm_embeds = output.last_hidden_state[:, 0]
-                similarity = model.itm_head(itm_embeds)[:, 1]
-
-                similarity  = similarity.unsqueeze(1).detach().cpu().numpy()
-                text_feats  = text_feats.unsqueeze(1).detach().cpu().numpy()
-                text_atts   = text_atts.unsqueeze(1).detach().cpu().numpy()
-                image_feats = image_feats.unsqueeze(1).detach().cpu().numpy()  # (bsz, 1, #frm*L, d)
-
-                for idx, v_id in enumerate(video_ids):
-                    if v_id not in image_feats_dict.keys():
-                        text_ids_dict[v_id]    = [np.array(text_ids[idx])]
-                        text_feats_dict[v_id]  = [text_feats[idx]]
-                        text_atts_dict[v_id]   = [text_atts[idx]]
-                        image_feats_dict[v_id] = [image_feats[idx]]
-                        clip_sim_dict[v_id]    = [similarity[idx]]
+                    if config.evaluation.eval_frame_ensemble == "concat":  # default
+                        if len(image_feats.shape) == 4:
+                            image_feats = rearrange(image_feats, "b t l c -> b (t l) c").contiguous()
+                        image_feats = image_feats  # (bsz, 1, #frm*L, d)
                     else:
-                        text_ids_dict[v_id].extend([text_ids[idx]])
-                        text_feats_dict[v_id].extend([text_feats[idx]])
-                        text_atts_dict[v_id].extend([text_atts[idx]])
-                        image_feats_dict[v_id].extend([image_feats[idx]])
-                        clip_sim_dict[v_id].extend([similarity[idx]])
+                        assert config.video_input.num_frames == 1, "only support single-frame"
+                        assert config.evaluation.eval_frame_ensemble in ["mean", "max", "lse"]
+                    # -------------------------------------------------------------
 
-                step += 1
+                    encoder_output = image_feats # (#frm*Li, d)
+                    encoder_att    = torch.ones(encoder_output.size()[:-1], 
+                                            dtype=torch.long).to(args.device, non_blocking=True)
 
-            for v_id in image_feats_dict.keys():
-                text_ids_dict[v_id]    = np.vstack(text_ids_dict[v_id]) 
-                text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id]) 
-                text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id]) 
-                image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id]) 
-                clip_sim_dict[v_id]    = np.vstack(clip_sim_dict[v_id])
+                    output = text_encoder(
+                        encoder_embeds=text_feats,
+                        attention_mask=text_atts,
+                        encoder_hidden_states=encoder_output,
+                        encoder_attention_mask=encoder_att,
+                        return_dict=True,
+                        mode="fusion",
+                    )
 
-            save_embeds_sims_chunk_UMT_single(args, config, model,
-                                text_ids_dict,
-                                text_feats_dict,
-                                text_atts_dict,
-                                image_feats_dict,
-                                clip_sim_dict,
-                                h5py_f,)
+                    itm_embeds = output.last_hidden_state[:, 0]
+                    similarity = model.itm_head(itm_embeds)[:, 1]
+
+                    similarity  = similarity.unsqueeze(1).detach().cpu().numpy()
+                    text_feats  = text_feats.unsqueeze(1).detach().cpu().numpy()
+                    text_atts   = text_atts.unsqueeze(1).detach().cpu().numpy()
+                    image_feats = image_feats.unsqueeze(1).detach().cpu().numpy()  # (bsz, 1, #frm*L, d)
+
+                    for idx, v_id in enumerate(video_ids):
+                        if v_id not in image_feats_dict.keys():
+                            text_ids_dict[v_id]    = [np.array(text_ids[idx])]
+                            text_feats_dict[v_id]  = [text_feats[idx]]
+                            text_atts_dict[v_id]   = [text_atts[idx]]
+                            image_feats_dict[v_id] = [image_feats[idx]]
+                            clip_sim_dict[v_id]    = [similarity[idx]]
+                        else:
+                            text_ids_dict[v_id].extend([text_ids[idx]])
+                            text_feats_dict[v_id].extend([text_feats[idx]])
+                            text_atts_dict[v_id].extend([text_atts[idx]])
+                            image_feats_dict[v_id].extend([image_feats[idx]])
+                            clip_sim_dict[v_id].extend([similarity[idx]])
+
+                    step += 1
+
+                for v_id in image_feats_dict.keys():
+                    text_ids_dict[v_id]    = np.vstack(text_ids_dict[v_id]) 
+                    text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id]) 
+                    text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id]) 
+                    image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id]) 
+                    clip_sim_dict[v_id]    = np.vstack(clip_sim_dict[v_id])
+
+                save_embeds_sims_chunk_UMT_single(args, config, model,
+                                    text_ids_dict,
+                                    text_feats_dict,
+                                    text_atts_dict,
+                                    image_feats_dict,
+                                    clip_sim_dict,
+                                    h5py_f,)
 
 
 if __name__ == "__main__":

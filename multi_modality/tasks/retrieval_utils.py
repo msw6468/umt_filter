@@ -71,7 +71,7 @@ def extract_vision_feats(data_loader, model, device, config):
 
 @torch.no_grad()
 def evaluation_wrapper(model, data_loader, tokenizer, device, config, prefix=""):
-    with torch.cuda.amp.autocast(enabled=config.fp16):
+    with torch.cuda.amp.autocast(enabled=config.fp16): # XXX
         i2t_x, t2i_x, i2t_emb, t2i_emb = evaluation(
             model, data_loader, tokenizer, device, config
         )
@@ -91,6 +91,7 @@ def evaluation_wrapper(model, data_loader, tokenizer, device, config, prefix="")
 @torch.no_grad()
 def evaluation(model, data_loader, tokenizer, device, config):
     model.eval()
+
 
     metric_logger = MetricLogger(delimiter="  ")
     header = "Evaluation:"
