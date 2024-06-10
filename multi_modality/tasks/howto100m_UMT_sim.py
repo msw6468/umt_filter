@@ -150,9 +150,9 @@ def get_h5py_files(args):
     h5py_f = {}
 
     h5py_f['text_ids_h5']    = h5py.File(os.path.join(args.save_path, f'text_ids_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
-    h5py_f['text_feats_h5']  = h5py.File(os.path.join(args.save_path, f'text_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
-    h5py_f['text_atts_h5']   = h5py.File(os.path.join(args.save_path, f'text_atts_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
-    h5py_f['image_feats_h5'] = h5py.File(os.path.join(args.save_path, f'image_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
+    # h5py_f['text_feats_h5']  = h5py.File(os.path.join(args.save_path, f'text_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
+    # h5py_f['text_atts_h5']   = h5py.File(os.path.join(args.save_path, f'text_atts_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
+    # h5py_f['image_feats_h5'] = h5py.File(os.path.join(args.save_path, f'image_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
     h5py_f['clip_sim_h5']    = h5py.File(os.path.join(args.save_path, f'clip_sim_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
 
     for key in h5py_f:
@@ -311,22 +311,23 @@ def get_UMT_scores(args, config, model,
 
 def save_embeds_sims_chunk_UMT_single(args, config, model,
                             text_ids_dict,
-                            text_feats_dict,
-                            text_atts_dict,
-                            image_feats_dict,
+                            # text_feats_dict,
+                            # text_atts_dict,
+                            # image_feats_dict,
                             clip_sim_dict,
                             h5py_f,):
     # Save as single video id
-    for video_id in image_feats_dict.keys():
+    for video_id in clip_sim_dict.keys():
         # i2t_scores_x = get_UMT_scores(args, config, model,
         #             text_feats_dict[video_id],
         #             text_atts_dict[video_id],
         #             image_feats_dict[video_id],
         #             )
+
         h5py_f['text_ids_h5'].create_dataset(video_id, data = text_ids_dict[video_id])
-        h5py_f['text_feats_h5'].create_dataset(video_id, data = text_feats_dict[video_id])
-        h5py_f['text_atts_h5'].create_dataset(video_id, data = text_atts_dict[video_id])
-        h5py_f['image_feats_h5'].create_dataset(video_id, data = image_feats_dict[video_id])
+        # h5py_f['text_feats_h5'].create_dataset(video_id, data = text_feats_dict[video_id])
+        # h5py_f['text_atts_h5'].create_dataset(video_id, data = text_atts_dict[video_id])
+        # h5py_f['image_feats_h5'].create_dataset(video_id, data = image_feats_dict[video_id])
         h5py_f['clip_sim_h5'].create_dataset(video_id, data = clip_sim_dict[video_id])
 
     # Flush
@@ -335,7 +336,7 @@ def save_embeds_sims_chunk_UMT_single(args, config, model,
 
     # Save flag after flush
     if not args.debug:
-        for video_id in image_feats_dict.keys():
+        for video_id in clip_sim_dict.keys():
             flag_save_path = os.path.join(args.flag_dir, f'{video_id}')
             Path(flag_save_path).touch()
     else:
@@ -463,9 +464,9 @@ def main(args):
 
         print('Start batch')
         text_ids_dict = {}
-        text_feats_dict = {}
-        text_atts_dict = {}
-        image_feats_dict = {}
+        # text_feats_dict = {}
+        # text_atts_dict = {}
+        # image_feats_dict = {}
         clip_sim_dict = {}
         step = 0
         with torch.no_grad():
@@ -520,38 +521,38 @@ def main(args):
                     similarity = model.itm_head(itm_embeds)[:, 1]
 
                     similarity  = similarity.unsqueeze(1).detach().cpu().numpy()
-                    text_feats  = text_feats.unsqueeze(1).detach().cpu().numpy()
-                    text_atts   = text_atts.unsqueeze(1).detach().cpu().numpy()
-                    image_feats = image_feats.unsqueeze(1).detach().cpu().numpy()  # (bsz, 1, #frm*L, d)
+                    # text_feats  = text_feats.unsqueeze(1).detach().cpu().numpy()
+                    # text_atts   = text_atts.unsqueeze(1).detach().cpu().numpy()
+                    # image_feats = image_feats.unsqueeze(1).detach().cpu().numpy()  # (bsz, 1, #frm*L, d)
 
                     for idx, v_id in enumerate(video_ids):
-                        if v_id not in image_feats_dict.keys():
+                        if v_id not in clip_sim_dict.keys():
                             text_ids_dict[v_id]    = [np.array(text_ids[idx])]
-                            text_feats_dict[v_id]  = [text_feats[idx]]
-                            text_atts_dict[v_id]   = [text_atts[idx]]
-                            image_feats_dict[v_id] = [image_feats[idx]]
+                            # text_feats_dict[v_id]  = [text_feats[idx]]
+                            # text_atts_dict[v_id]   = [text_atts[idx]]
+                            # image_feats_dict[v_id] = [image_feats[idx]]
                             clip_sim_dict[v_id]    = [similarity[idx]]
                         else:
                             text_ids_dict[v_id].extend([text_ids[idx]])
-                            text_feats_dict[v_id].extend([text_feats[idx]])
-                            text_atts_dict[v_id].extend([text_atts[idx]])
-                            image_feats_dict[v_id].extend([image_feats[idx]])
+                            # text_feats_dict[v_id].extend([text_feats[idx]])
+                            # text_atts_dict[v_id].extend([text_atts[idx]])
+                            # image_feats_dict[v_id].extend([image_feats[idx]])
                             clip_sim_dict[v_id].extend([similarity[idx]])
 
                     step += 1
 
-                for v_id in image_feats_dict.keys():
+                for v_id in clip_sim_dict.keys():
                     text_ids_dict[v_id]    = np.vstack(text_ids_dict[v_id])
-                    text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id])
-                    text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id])
-                    image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id])
+                    # text_feats_dict[v_id]  = np.vstack(text_feats_dict[v_id])
+                    # text_atts_dict[v_id]   = np.vstack(text_atts_dict[v_id])
+                    # image_feats_dict[v_id] = np.vstack(image_feats_dict[v_id])
                     clip_sim_dict[v_id]    = np.vstack(clip_sim_dict[v_id])
 
                 save_embeds_sims_chunk_UMT_single(args, config, model,
                                     text_ids_dict,
-                                    text_feats_dict,
-                                    text_atts_dict,
-                                    image_feats_dict,
+                                    # text_feats_dict,
+                                    # text_atts_dict,
+                                    # image_feats_dict,
                                     clip_sim_dict,
                                     h5py_f,)
 
