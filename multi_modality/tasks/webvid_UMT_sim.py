@@ -34,10 +34,11 @@ from models.backbones.bert.tokenization_bert import BertTokenizer
 from einops import rearrange
 
 LOAD_DIR = {
-    'millet': '/gallery_millet/chris.kim/data/videocc3m/8frames_per_clip',
-    'tate'  : '/gallery_tate/dongyeon.woo/jongchan/videocc3m/8frames_per_clip',
-    'orsay' : '/gallery_orsay/sangwoo.moon/data/video/cc3m/8frames_per_clip',
-    'getty' : '/gallery_getty/dongjoo.kim/vision/cc3m/8frames_per_clip'
+    'millet': '/gallery_millet/chris.kim/data/webvid',
+    'tate':   '/gallery_tate/dongyeon.woo/jongchan/webvid',
+    'getty':  '/gallery_getty/dongjoo.kim/vision/webvid',
+    'moma':   '/gallery_moma/jongchan.noh/webvid',
+    'orsay':  '/gallery_orsay/sangwoo.moon/JC/webvid',
 }
 
 # utils ----------------------------------------------------------
@@ -60,6 +61,7 @@ def get_UMT_model(args):
         config, model_cls=model_cls, has_decoder=False,
         pretrain=False, find_unused_parameters=False,
     )
+
     # sanity check
     # with torch.cuda.amp.autocast(enabled=config.fp16):
     #     model.eval()
@@ -86,7 +88,7 @@ def get_UMT_model(args):
 
 
 def get_total_video_dict(args):
-    file_name = f'/gallery_millet/chris.kim/data/videocc3m/video_cc_3m_final_part{args.meta_part}.csv'
+    file_name = f'{LOAD_DIR["millet"]}/webvid10m_train_{args.dir_name}_w_uid_part{args.meta_part}.csv'
     total_video_dict = pd.read_csv(file_name, index_col=0)
     return total_video_dict
 
@@ -95,23 +97,21 @@ def get_partitioned_dict(total_video_dict, total, part):
     if total==1:
         return total_video_dict
 
-    if args.total > 1:
-        total_video_list = list(total_video_dict)
-        total_size       = len(total_video_dict)
-        part_size        = int(total_size / total)
+    total_size       = len(total_video_dict)
+    part_size        = int(total_size / total)
 
-        start            = part_size * (part - 1)
-        end              = part_size * (part) if part < total else total_size
+    start            = part_size * (part - 1)
+    end              = part_size * (part) if part < total else total_size
 
-        new_total_video_dict  = total_video_dict.iloc[start:end]
-        print(f'[PARTITION] Total datasets  : {len(total_video_dict)}, Part: {part}/{total} [{start}:{end}]')
-        print(f'[PARTITION] After partition : {len(new_total_video_dict)}')
+    new_total_video_dict  = total_video_dict.iloc[start:end]
+    print(f'[PARTITION] Total datasets  : {len(total_video_dict)}, Part: {part}/{total} [{start}:{end}]')
+    print(f'[PARTITION] After partition : {len(new_total_video_dict)}')
 
     return new_total_video_dict
 
 
 def get_preprocessed_frames_hdf5(args):
-    h5_filename = os.path.join(LOAD_DIR[args.dir_name], f'preprocessed_frames_part{args.meta_part}.h5')
+    h5_filename = os.path.join(LOAD_DIR[args.dir_name], f'preprocessed_frames_{args.dir_name}_{args.meta_part}.h5')
     h5_file = h5py.File(h5_filename, 'r')
     return h5_file
 
@@ -122,7 +122,7 @@ def get_h5py_files(args):
     # h5py_f['text_feats_h5']  = h5py.File(os.path.join(args.save_path, f'text_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
     # h5py_f['text_atts_h5']   = h5py.File(os.path.join(args.save_path, f'text_atts_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
     # h5py_f['image_feats_h5'] = h5py.File(os.path.join(args.save_path, f'image_feats_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
-    h5py_f['clip_sim_h5']    = h5py.File(os.path.join(args.save_path, f'clip_sim_part{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
+    h5py_f['clip_sim_h5']    = h5py.File(os.path.join(args.save_path, f'clip_sim_part_{args.dir_name}_{args.meta_part}_{args.total}_{args.part}.h5'), 'a')
 
     for key in h5py_f:
         h5py_f[key].flush()
@@ -148,12 +148,12 @@ class BaseDataset(Dataset, ABC):
     def collate_fn(self, batch):
         return default_collate(batch)
 # ================
-# VideoCC3M  Datasets
+# WebVid  Datasets
 # ================
-class VideoCC3M(BaseDataset):
-    name = 'howto100m'
+class WebVid(BaseDataset):
+    name = 'webvid'
     def __init__(self, args, tokenizer, processor, frames_h5=None, video_dict=None):
-        super(VideoCC3M, self).__init__()
+        super(WebVid, self).__init__()
 
         self.args   = args
         self.debug  = args.debug
@@ -210,16 +210,14 @@ class VideoCC3M(BaseDataset):
 
     def __repr__(self):
         return str(self)
-
-
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         data               = self.df.iloc[idx]
-        unique_id          = data['unique_index'] # use idx as unique identifier (name for dataset in h5 file)
-        video_id           = data['id']   
-        raw_text           = data['caption']
+        unique_id          = data['unique_id'] # use idx as unique identifier (name for dataset in h5 file)
+        video_id           = f"{data['page_dir']}/{data['videoid']}" 
+        raw_text           = data['name']
         frames, valid_flag = self._get_frames(video_id=video_id)
 
         return unique_id, frames, raw_text, valid_flag
@@ -231,6 +229,7 @@ def parse_args():
     # For partition
     parser.add_argument("--dir_name",  type=str, default='moma', help="[moma, tate, getty, orsay, ai2]")
     parser.add_argument("--meta_part", type=int, default=1,      help="after multi-downloading. which part?(0, ..., )")
+
     parser.add_argument("--part",      type=int, default=1,      help="for mulit_running. which part?(1, ..., total)")
     parser.add_argument("--total",     type=int, default=1,      help="for multi_running. how many parts?")
 
@@ -257,7 +256,7 @@ def parse_args():
 def main(args):
     args.debug = True if args.debug == 'True' else False
     args.final_check = True if args.final_check == 'True' else False
-    args.root_path = os.path.join(LOAD_DIR['millet'])
+    args.root_path = os.path.join(LOAD_DIR['orsay'])
     args.save_path = os.path.join(args.root_path, 'UMT') if not args.debug else os.path.join(args.root_path, 'UMT', 'debug')
 
     pprint(args)
@@ -285,9 +284,10 @@ def main(args):
     # remove processed indexs
     processed_index_list = os.listdir(args.flag_dir)
     processed_index_list = list(map(int, processed_index_list))
-    total_video_dict   = total_video_dict[~total_video_dict['unique_index'].isin(processed_index_list)]
+    total_video_dict   = total_video_dict[~total_video_dict['unique_id'].isin(processed_index_list)]
+    print(f'After remove processed indexes : {len(total_video_dict)}')
 
-    dataset  = VideoCC3M(
+    dataset  = WebVid(
         args       = args,
         tokenizer  = tokenizer,
         processor  = transform,
@@ -315,7 +315,7 @@ def main(args):
         with torch.cuda.amp.autocast(enabled=config.fp16):
             pbar = tqdm(dataloader)
             for batch in pbar:
-                pbar.set_description(f"[{args.part:2d}/{args.total:2d}] [#clips: {len(dataset)}]")
+                pbar.set_description(f"[{args.dir_name}_{args.meta_part}[{args.part:2d}/{args.total:2d}]")
                 unique_ids, frames, raw_texts, valid_flag = batch
                 if np.sum(np.array(valid_flag)) == 0:
                     continue
@@ -369,7 +369,9 @@ def main(args):
                 for u_id, sim in zip(unique_ids, similarity):
                     if str(u_id) in h5py_f['clip_sim_h5'].keys():
                         del h5py_f['clip_sim_h5'][str(u_id)]
+
                     h5py_f['clip_sim_h5'].create_dataset(str(u_id), data = np.array([[sim]]))
+                    h5py_f['clip_sim_h5'].flush()
                     flag_save_path = os.path.join(args.flag_dir, f'{u_id}')
                     Path(flag_save_path).touch()
 
